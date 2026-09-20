@@ -43,29 +43,29 @@ export const currentUserRole = async () => {
         const {id} = user;
         const userRole = await prisma.user.findUnique({
             where: { clerkId: id },
-            select: { role: true }
+            select: {   role: true }
         });
-        return userRole?.role;
+        return userRole?.role
     } catch (error) {
         console.error("Error fetching user role:", error);
         throw new Error("Failed to fetch user role");
     }
 }
 
-//  export const getCurrentUserData = async () => {
-    // try {
-    //     const user = await currentUser();
-    //     if (!user) {
-    //         throw new Error("User not found");
-    //     }
-    //     const { id } = user;
-    //     const userData = await prisma.user.findUnique({
-    //         where: { clerkId: id },
-    //         select: { firstName: true, lastName: true, email: true }
-    //     });
-    //     return userData;
-    // } catch (error) {
-    //     console.error("Error fetching current user data:", error);
-    //     throw new Error("Failed to fetch current user data");
-    // }
-// };
+ export const getCurrentUserData = async () => {
+    try {
+        const user = await currentUser();
+        if (!user) {
+            throw new Error("User not found");
+        }
+        const { id } = user;
+        const userData = await prisma.user.findUnique({
+            where: { clerkId: id },
+            select: { firstName: true, lastName: true, email: true ,id: true}
+        });
+        return userData;
+    } catch (error) {
+        console.error("Error fetching current user data:", error);
+        throw new Error("Failed to fetch current user data");
+    }
+};
