@@ -1,6 +1,6 @@
 import { clerkMiddleware } from '@clerk/nextjs/server';
 
-const isPublicRoute = (pathname: string) => /^\/(?:sign-in|sign-up)(?:\/|$)/.test(pathname);
+const isPublicRoute = (pathname: string) => /^(?:\/$|\/(?:sign-in|sign-up)(?:\/|$))/.test(pathname);
 
 export default clerkMiddleware(async (auth , req) => {
   if(!isPublicRoute(req.nextUrl.pathname)) {

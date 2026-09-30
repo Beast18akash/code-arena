@@ -6,6 +6,7 @@ import { ChevronRight, Code2, Play, Star, Trophy, Users, Zap } from "lucide-reac
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
+export const dynamic = "force-dynamic";
 
 export default async function Home() {
   await onBoardUser();

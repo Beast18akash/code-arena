@@ -6,7 +6,7 @@ export async function onBoardUser() {
     try {
         const user = await currentUser();
         if (!user) {
-            throw new Error("User not found");
+            return null;
         }
 
    const { id , emailAddresses, firstName, lastName, imageUrl } = user;
@@ -29,8 +29,8 @@ export async function onBoardUser() {
 
         return newUser;
     } catch (error) {
-        console.error("Error onboarding user:", error);
-        throw new Error("Failed to onboard user");
+        console.error("Error onboarding user FULL TRACE:", error);
+        return null;
     }
 }
 
@@ -38,7 +38,7 @@ export const currentUserRole = async () => {
     try {
         const user = await currentUser();
         if (!user) {
-            throw new Error("User not found");
+            return undefined;
         }
         const {id} = user;
         const userRole = await prisma.user.findUnique({
@@ -48,7 +48,7 @@ export const currentUserRole = async () => {
         return userRole?.role
     } catch (error) {
         console.error("Error fetching user role:", error);
-        throw new Error("Failed to fetch user role");
+        return undefined;
     }
 }
 
