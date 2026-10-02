@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import axios from "axios";
 import { currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
+import { prepareJavaSubmission } from "@/lib/java-submission";
+import { prepareJavaScriptSubmission } from "@/lib/javascript-submission";
+import { preparePythonSubmission } from "@/lib/python-submission";
 import {
   executeJudge0Submission,
   getJudge0LanguageConfig,
@@ -56,6 +59,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Problem has no test cases" }, { status: 400 });
     }
 
+    let executableSource = sourceCode;
+    try {
+      if (languageConfig.codeArenaLanguage === "Java") {
+        executableSource = prepareJavaSubmission(sourceCode);
+      } else if (languageConfig.codeArenaLanguage === "Python") {
+        executableSource = preparePythonSubmission(sourceCode);
+      } else if (languageConfig.codeArenaLanguage === "JavaScript") {
+        executableSource = prepareJavaScriptSubmission(sourceCode);
+      }
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "Could not prepare submission" },
+        { status: 400 },
+      );
+    }
+
     const submissionRecord = await prisma.submission.create({
       data: {
         userId: userRecord.id,
@@ -80,7 +99,7 @@ export async function POST(request: Request) {
 
       const judgeResult = await executeJudge0Submission({
         language_id: languageConfig.judge0LanguageId,
-        source_code: sourceCode,
+        source_code: executableSource,
         stdin: input,
       });
 

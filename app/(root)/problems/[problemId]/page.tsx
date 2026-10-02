@@ -81,7 +81,7 @@ export default async function ProblemDetailPage({
   );
 
   return (
-    <div className="mx-auto grid w-full max-w-7xl gap-6 pt-24 pb-10 xl:grid-cols-[minmax(0,0.9fr)_minmax(34rem,1.1fr)]">
+    <div className="mx-auto grid w-full max-w-[1600px] gap-6 pt-24 pb-10 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
       <section className="min-w-0 space-y-7">
         <header className="border-b border-border pb-5">
           <div className="flex flex-wrap items-center gap-3">

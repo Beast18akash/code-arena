@@ -11,6 +11,7 @@ import {
 } from "@/lib/notifications";
 
 type Language = "JAVASCRIPT" | "PYTHON" | "JAVA";
+type EditorLanguage = "javascript" | "python" | "java";
 type Example = { input: string; output: string; explanation: string } | null;
 type SubmissionResult = {
   id: string;
@@ -26,7 +27,7 @@ type SubmissionResult = {
   compileOutput: string | null;
 };
 
-const LANGUAGE_OPTIONS: { value: Language; label: string; editorLanguage: string }[] = [
+const LANGUAGE_OPTIONS: { value: Language; label: string; editorLanguage: EditorLanguage }[] = [
   { value: "JAVASCRIPT", label: "JavaScript", editorLanguage: "javascript" },
   { value: "PYTHON", label: "Python", editorLanguage: "python" },
   { value: "JAVA", label: "Java", editorLanguage: "java" },
@@ -108,6 +109,7 @@ export function ProblemSolver({
           value={sourceByLanguage[language]}
           onChange={(value?: string) => setSourceByLanguage((current) => ({ ...current, [language]: value ?? "" }))}
           language={editorLanguage}
+          height="min(68vh, 720px)"
         />
       </div>
 

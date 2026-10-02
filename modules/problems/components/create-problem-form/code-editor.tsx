@@ -7,17 +7,24 @@ const LANGUAGE_MAP = {
   java: "java",
 };
 
-export function CodeEditor({ value, onChange, language = "javascript" }: any) {
+type CodeEditorProps = {
+  value: string;
+  onChange: (value?: string) => void;
+  language?: keyof typeof LANGUAGE_MAP;
+  height?: string;
+};
+
+export function CodeEditor({ value, onChange, language = "javascript", height = "300px" }: CodeEditorProps) {
   return (
     <div className="border rounded-md bg-slate-950 text-slate-50">
       <div className="px-4 py-2 bg-slate-800 border-b text-sm font-mono">
         {language}
       </div>
 
-      <div className="h-75 w-full">
+      <div className="w-full" style={{ height }}>
         <Editor
-          height={"300px"}
-          defaultLanguage={LANGUAGE_MAP[language as keyof typeof LANGUAGE_MAP] || "javascript"}
+          height={height}
+          language={LANGUAGE_MAP[language]}
           theme="vs-dark"
           value={value}
           onChange={onChange}
