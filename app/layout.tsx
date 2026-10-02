@@ -33,7 +33,22 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
       <ClerkProvider>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange> 
-          <Toaster/>
+          <Toaster
+            theme="system"
+            position="bottom-right"
+            richColors
+            expand={false}
+            visibleToasts={3}
+            closeButton
+            duration={4000}
+            toastOptions={{
+              classNames: {
+                toast: "!w-[calc(100vw-2rem)] !max-w-[calc(100vw-2rem)] sm:!w-[360px] sm:!max-w-[360px] !font-mono !rounded-none !shadow-lg",
+                title: "!text-sm !font-semibold",
+                description: "!text-xs !break-words",
+              },
+            }}
+          />
         {children}
         </ThemeProvider>
         </ClerkProvider></body>

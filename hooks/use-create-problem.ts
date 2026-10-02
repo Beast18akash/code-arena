@@ -5,21 +5,35 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { defaultFormValues, problemSchema } from "@/modules/problems/schema";
+import {
+  defaultFormValues,
+  problemSchema,
+  type ProblemFormData,
+} from "@/modules/problems/schema";
 import { SAMPLE_PROBLEMS } from "@/modules/problems/constant/sample-problem";
-import { z } from "zod";
+import { notifyApiError, notifyProblemSaved } from "@/lib/notifications";
 
-type ProblemFormData = z.infer<typeof problemSchema>;
+type UseCreateProblemOptions = {
+  problemId?: string;
+  initialValues?: ProblemFormData;
+};
 
-export function useCreateProblem() {
+type TagsArray = {
+  fields: { id: string }[];
+  append: (value: string) => void;
+  remove: (index: number) => void;
+  replace: (values: string[]) => void;
+};
+
+export function useCreateProblem({ problemId, initialValues }: UseCreateProblemOptions = {}) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [sampleType, setSampleType] = useState("DP");
+  const isEditing = Boolean(problemId);
 
   const form = useForm<ProblemFormData>({
     resolver: zodResolver(problemSchema),
-    defaultValues: defaultFormValues as ProblemFormData,
+    defaultValues: initialValues ?? (defaultFormValues as ProblemFormData),
   });
 
   const testCasesArray = useFieldArray({
@@ -29,29 +43,36 @@ export function useCreateProblem() {
 
   const tagsArray = useFieldArray({
     control: form.control,
-    name: "tags" as any,
-  }) as any;
+    name: "tags" as never,
+  }) as unknown as TagsArray;
 
   const onSubmit = async (values: ProblemFormData) => {
     try {
       setIsLoading(true);
-      const response = await fetch("/api/create-problem", {
-        method: "POST",
+      const response = await fetch(
+        isEditing ? `/api/problems/${problemId}` : "/api/create-problem",
+        {
+        method: isEditing ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
-      });
+        },
+      );
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to create problem");
+        notifyApiError(response.status, data.error);
+        return;
       }
 
-      toast.success("Problem created successfully");
+      notifyProblemSaved(isEditing);
       router.push("/problems");
     } catch (error) {
       console.error("Error creating problem:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to create problem");
+      notifyApiError(
+        undefined,
+        error instanceof Error ? error.message : undefined,
+      );
     } finally {
       setIsLoading(false);
     }
@@ -60,10 +81,10 @@ export function useCreateProblem() {
   const loadSampleData = () => {
     const sampleData =
       SAMPLE_PROBLEMS[sampleType as keyof typeof SAMPLE_PROBLEMS];
-    tagsArray.replace(sampleData.tags);
-    testCasesArray.replace(sampleData.testCases);
-
-    form.reset(sampleData as any);
+    const parsedSample = problemSchema.parse(sampleData);
+    tagsArray.replace(parsedSample.tags);
+    testCasesArray.replace(parsedSample.testCases);
+    form.reset(parsedSample);
   };
 
   return {
@@ -71,6 +92,7 @@ export function useCreateProblem() {
     testCasesArray,
     tagsArray,
     isLoading,
+    isEditing,
     sampleType,
     setSampleType,
     onSubmit: form.handleSubmit(onSubmit),

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import axios from "axios";
 import { currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
 import {
@@ -9,6 +10,8 @@ import {
 import { SubmissionStatus, SubmissionVerdict } from "@/lib/generated/prisma/client";
 
 export async function POST(request: Request) {
+  let submissionId: string | null = null;
+
   try {
     const user = await currentUser();
     if (!user) {
@@ -62,6 +65,7 @@ export async function POST(request: Request) {
         status: SubmissionStatus.PENDING,
       },
     });
+    submissionId = submissionRecord.id;
 
     let passedCases = 0;
     let verdict: SubmissionVerdict = SubmissionVerdict.JUDGE_ERROR;
@@ -101,9 +105,18 @@ export async function POST(request: Request) {
         break;
       }
 
-      if ([7, 8, 9, 10, 11, 12, 13].includes(Number(statusId ?? 0))) {
+      if ([7, 8, 9, 10, 11].includes(Number(statusId ?? 0))) {
         verdict = SubmissionVerdict.RUNTIME_ERROR;
         stderr = judgeResult.stderr ?? null;
+        stdout = judgeResult.stdout ?? null;
+        finalStatus = SubmissionStatus.FAILED;
+        break;
+      }
+
+      if (statusId !== 3 && statusId !== 4) {
+        verdict = SubmissionVerdict.JUDGE_ERROR;
+        stderr = judgeResult.stderr ?? null;
+        compileOutput = judgeResult.compile_output ?? null;
         stdout = judgeResult.stdout ?? null;
         finalStatus = SubmissionStatus.FAILED;
         break;
@@ -154,6 +167,7 @@ export async function POST(request: Request) {
           passedCases,
           totalCases: testCases.length,
           language: updatedSubmission.language,
+          message: getVerdictMessage(finalVerdict),
           stdout: updatedSubmission.stdout,
           stderr: updatedSubmission.stderr,
           compileOutput: updatedSubmission.compileOutput,
@@ -164,7 +178,23 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Submission execution error:", error);
 
-    if (error instanceof Error && error.message.includes("JUDGE0")) {
+    if (submissionId) {
+      try {
+        await prisma.submission.update({
+          where: { id: submissionId },
+          data: {
+            status: SubmissionStatus.FAILED,
+            verdict: SubmissionVerdict.JUDGE_ERROR,
+            score: 0,
+            stderr: error instanceof Error ? error.message : "Judge0 execution failed",
+          },
+        });
+      } catch (persistenceError) {
+        console.error("Failed to persist Judge0 error:", persistenceError);
+      }
+    }
+
+    if (axios.isAxiosError(error)) {
       return NextResponse.json(
         { error: "Judge0 is unavailable or failed to execute the submission" },
         { status: 502 },
@@ -175,5 +205,22 @@ export async function POST(request: Request) {
       { error: error instanceof Error ? error.message : "Failed to process submission" },
       { status: 500 },
     );
+  }
+}
+
+function getVerdictMessage(verdict: SubmissionVerdict) {
+  switch (verdict) {
+    case SubmissionVerdict.ACCEPTED:
+      return "All test cases passed.";
+    case SubmissionVerdict.WRONG_ANSWER:
+      return "Your program ran, but its output did not match the expected answer.";
+    case SubmissionVerdict.COMPILATION_ERROR:
+      return "Your code could not be compiled.";
+    case SubmissionVerdict.RUNTIME_ERROR:
+      return "Your program started but exited with an error.";
+    case SubmissionVerdict.TIME_LIMIT_EXCEEDED:
+      return "Your program exceeded the execution time limit.";
+    case SubmissionVerdict.JUDGE_ERROR:
+      return "The judge could not evaluate this submission. Please try again later.";
   }
 }

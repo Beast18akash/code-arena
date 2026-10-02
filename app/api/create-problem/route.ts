@@ -2,12 +2,10 @@ import { NextResponse } from "next/server";
 import { UserRole } from "@/lib/generated/prisma/client";
 import { getCurrentUserData, currentUserRole } from "@/modules/auth/actions";
 import {
-  executeJudge0Submission,
-  getJudge0LanguageConfig,
   getJudge0Url,
-  normalizeJudge0Output,
 } from "@/lib/judge0";
 import { prisma } from "@/lib/db";
+import { validateReferenceSolutions } from "@/lib/problem-validation";
 
 export async function POST(request: Request) {
   try {
@@ -42,6 +40,23 @@ export async function POST(request: Request) {
       referenceSolutions,
     } = await request.json();
 
+    if (typeof title !== "string" || !title.trim()) {
+      return NextResponse.json({ error: "A problem title is required" }, { status: 400 });
+    }
+
+    const normalizedTitle = title.trim();
+    const existingProblem = await prisma.problem.findFirst({
+      where: { title: { equals: normalizedTitle, mode: "insensitive" } },
+      select: { id: true },
+    });
+
+    if (existingProblem) {
+      return NextResponse.json(
+        { error: "A problem with this title already exists" },
+        { status: 409 },
+      );
+    }
+
     if (!title || !description || !difficulty || !tags || !examples || !constraints || !testCases || !codeSnippets || !referenceSolutions) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
@@ -50,86 +65,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "At least one test case is required" }, { status: 400 });
     }
 
-    for (const [language, solutionCode] of Object.entries(referenceSolutions)) {
-      const languageConfig = getJudge0LanguageConfig(language);
-      if (!languageConfig) {
-        return NextResponse.json({ error: `Unsupported language: ${language}` }, { status: 400 });
-      }
-
-      const codeString = typeof solutionCode === "string" ? solutionCode.trim() : "";
-      const isPlaceholderCode =
-        !codeString ||
-        /Add your reference solution here|Write your code here/i.test(codeString);
-
-      if (isPlaceholderCode) {
-        continue;
-      }
-
-      for (const testCase of testCases) {
-        const submission = await executeJudge0Submission({
-          language_id: languageConfig.judge0LanguageId,
-          source_code: codeString,
-          stdin: String(testCase.input ?? ""),
-          expected_output: String(testCase.output ?? ""),
-        });
-
-        const statusId = submission.status?.id;
-        const actualOutput = normalizeJudge0Output(submission.stdout ?? "");
-        const expectedOutput = normalizeJudge0Output(String(testCase.output ?? ""));
-
-        if (statusId === 6) {
-          return NextResponse.json(
-            {
-              error: `Validation failed for ${language}`,
-              testCases: {
-                input: String(testCase.input ?? ""),
-                expectedOutput: String(testCase.output ?? ""),
-                actualOutput: submission.stdout ?? "",
-                error: submission.compile_output || submission.stderr || "Compilation failed",
-              },
-              details: submission,
-            },
-            { status: 400 },
-          );
-        }
-
-        if (statusId === 5 || statusId === 7 || statusId === 8 || statusId === 9 || statusId === 10 || statusId === 11 || statusId === 12 || statusId === 13) {
-          return NextResponse.json(
-            {
-              error: `Validation failed for ${language}`,
-              testCases: {
-                input: String(testCase.input ?? ""),
-                expectedOutput: String(testCase.output ?? ""),
-                actualOutput: submission.stdout ?? "",
-                error: submission.stderr || submission.compile_output || "Execution failed",
-              },
-              details: submission,
-            },
-            { status: 400 },
-          );
-        }
-
-        if (statusId !== 3 || actualOutput !== expectedOutput) {
-          return NextResponse.json(
-            {
-              error: `Validation failed for ${language}`,
-              testCases: {
-                input: String(testCase.input ?? ""),
-                expectedOutput: String(testCase.output ?? ""),
-                actualOutput: submission.stdout ?? "",
-                error: submission.stderr || submission.compile_output || "Wrong answer",
-              },
-              details: submission,
-            },
-            { status: 400 },
-          );
-        }
-      }
+    const validationFailure = await validateReferenceSolutions(testCases, referenceSolutions);
+    if (validationFailure) {
+      return NextResponse.json(
+        {
+          error: `Validation failed for ${validationFailure.language}`,
+          testCase: validationFailure.testCase,
+          actualOutput: validationFailure.actualOutput,
+          details: validationFailure.error,
+        },
+        { status: 400 },
+      );
     }
 
     const newProblem = await prisma.problem.create({
       data: {
-        title,
+        title: normalizedTitle,
         description,
         difficulty,
         tags,

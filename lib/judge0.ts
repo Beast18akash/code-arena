@@ -105,12 +105,16 @@ export class Judge0Client {
   constructor(private readonly baseUrl: string = getJudge0Url()) {}
 
   async submitSubmission(submission: Judge0SubmissionRequest) {
-    const { data } = await axios.post(`${this.baseUrl}/submissions`, {
+    const payload = {
       language_id: submission.language_id,
       source_code: submission.source_code,
       stdin: submission.stdin,
-      expected_output: submission.expected_output ?? "",
-      base64_encoded: false,
+      ...(submission.expected_output !== undefined
+        ? { expected_output: submission.expected_output }
+        : {}),
+    };
+    const { data } = await axios.post(`${this.baseUrl}/submissions`, payload, {
+      params: { base64_encoded: false },
     });
 
     return data as { token: string };

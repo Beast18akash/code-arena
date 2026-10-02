@@ -49,6 +49,8 @@ export const problemSchema = z.object({
   }),
 });
 
+export type ProblemFormData = z.infer<typeof problemSchema>;
+
 export const defaultFormValues = {
   title: "",
   description: "",

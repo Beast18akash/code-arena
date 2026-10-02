@@ -4,31 +4,33 @@ import { Button } from "@/components/ui/button";
 import { CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
-export function FormHeader({ sampleType, setSampleType, onLoadSample }: any) {
+export function FormHeader({ sampleType, setSampleType, onLoadSample, isEditing }: any) {
   return (
     <CardHeader className="pb-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <CardTitle className="text-3xl flex items-center gap-3">
           <FileText className="w-8 h-8 text-amber-600" />
-          Create Problem
+          {isEditing ? "Edit Problem" : "Create Problem"}
         </CardTitle>
 
-        <div className="flex flex-col md:flex-row gap-3">
-          <SampleTypeToggle
-            sampleType={sampleType}
-            setSampleType={setSampleType}
-          />
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={onLoadSample}
-            className="gap-2"
-          >
-            <Download className="w-4 h-4" />
-            Load Sample
-          </Button>
-        </div>
+        {!isEditing && (
+          <div className="flex flex-col md:flex-row gap-3">
+            <SampleTypeToggle
+              sampleType={sampleType}
+              setSampleType={setSampleType}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={onLoadSample}
+              className="gap-2"
+            >
+              <Download className="w-4 h-4" />
+              Load Sample
+            </Button>
+          </div>
+        )}
       </div>
     </CardHeader>
   );
