@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import {Button} from "@/components/ui/button";
 import { UserButton } from "@clerk/nextjs";
 import { onBoardUser } from "@/modules/auth/actions";
@@ -114,21 +115,20 @@ export default async function Home() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
-            <Button
-              size="lg"
-              className="bg-amber-500 hover:bg-amber-600 dark:bg-amber-400 dark:hover:bg-amber-500 text-white dark:text-gray-900 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all"
+            <Link
+              href="/problems"
+              className="inline-flex items-center justify-center h-9 gap-1.5 px-2.5 rounded-md bg-amber-500 hover:bg-amber-600 dark:bg-amber-400 dark:hover:bg-amber-500 text-white dark:text-gray-900 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all font-medium"
             >
               <Play className="w-5 h-5 mr-2" />
               Start Coding Now
-              <ChevronRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="border-2 border-indigo-300 dark:border-indigo-600 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950"
+              <ChevronRight className="w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" />
+            </Link>
+            <Link
+              href="/problems"
+              className="inline-flex items-center justify-center h-9 gap-1.5 px-2.5 rounded-md border-2 border-indigo-300 dark:border-indigo-600 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950 font-medium"
             >
               Browse Problems
-            </Button>
+            </Link>
           </div>
 
           {/* Stats */}
@@ -269,12 +269,12 @@ export default async function Home() {
             Join thousands of developers who are improving their skills every
             day
           </p>
-          <Button
-            size="lg"
-            className="bg-white text-gray-900 hover:bg-gray-100 shadow-lg"
+          <Link
+            href="/sign-up"
+            className="inline-flex items-center justify-center h-9 gap-1.5 px-2.5 rounded-md bg-white text-gray-900 hover:bg-gray-100 shadow-lg font-medium"
           >
             Get Started for Free
-          </Button>
+          </Link>
         </div>
       </section>
     </div>
