@@ -14,30 +14,34 @@ export default async function ProblemDetailPage({
   params: Promise<{ problemId: string }>;
 }) {
   const { problemId } = await params;
-  const problem = await prisma.problem.findUnique({
-    where: { id: problemId },
-    select: {
-      id: true,
-      title: true,
-      description: true,
-      difficulty: true,
-      tags: true,
-      constraints: true,
-      hints: true,
-      example: true,
-      codeSnippets: true,
-    },
-  });
+  const [problem, clerkUser] = await Promise.all([
+    prisma.problem.findUnique({
+      where: { id: problemId },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        difficulty: true,
+        tags: true,
+        constraints: true,
+        hints: true,
+        example: true,
+        codeSnippets: true,
+      },
+    }),
+    currentUser(),
+  ]);
 
   if (!problem) {
     notFound();
   }
 
-  const user = await onBoardUser();
-  const clerkUser = await currentUser();
-  const userId = user?.id ?? (clerkUser
-    ? (await prisma.user.findUnique({ where: { clerkId: clerkUser.id }, select: { id: true } }))?.id
-    : undefined);
+  const [dbUser, userRecord] = await Promise.all([
+    clerkUser ? onBoardUser() : Promise.resolve(null),
+    clerkUser ? prisma.user.findUnique({ where: { clerkId: clerkUser.id }, select: { id: true } }) : Promise.resolve(null),
+  ]);
+
+  const userId = dbUser?.id ?? userRecord?.id;
 
   const submissions = userId
     ? await prisma.submission.findMany({

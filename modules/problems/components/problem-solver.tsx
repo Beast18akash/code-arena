@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { AlertCircle, CheckCircle2, LoaderCircle, Send } from "lucide-react";
+import { AlertCircle, CheckCircle2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CodeArenaExecutionIndicator } from "@/components/ui/codearena-loading";
 import { CodeEditor } from "./create-problem-form/code-editor";
 import {
   formatVerdict,
@@ -45,6 +46,7 @@ export function ProblemSolver({
   const [language, setLanguage] = useState<Language>("JAVASCRIPT");
   const [sourceByLanguage, setSourceByLanguage] = useState(starterCodeByLanguage);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [executionStage, setExecutionStage] = useState<"Preparing submission" | "Executing" | "Checking result" | null>(null);
   const [result, setResult] = useState<SubmissionResult | null>(null);
   const example = examplesByLanguage[language];
   const editorLanguage = LANGUAGE_OPTIONS.find((option) => option.value === language)?.editorLanguage ?? "javascript";
@@ -52,6 +54,7 @@ export function ProblemSolver({
   async function submitSolution() {
     setIsSubmitting(true);
     setResult(null);
+    setExecutionStage("Preparing submission");
 
     try {
       const response = await fetch("/api/submissions", {
@@ -63,6 +66,8 @@ export function ProblemSolver({
           sourceCode: sourceByLanguage[language],
         }),
       });
+
+      setExecutionStage("Executing");
       const payload = await response.json();
 
       if (!response.ok) {
@@ -70,6 +75,7 @@ export function ProblemSolver({
         return;
       }
 
+      setExecutionStage("Checking result");
       const submission = payload.submission as SubmissionResult;
       setResult(submission);
       notifySubmissionResult(
@@ -82,6 +88,7 @@ export function ProblemSolver({
       notifyApiError();
     } finally {
       setIsSubmitting(false);
+      setExecutionStage(null);
     }
   }
 
@@ -98,10 +105,15 @@ export function ProblemSolver({
             {LANGUAGE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
         </label>
-        <Button onClick={submitSolution} disabled={isSubmitting || !sourceByLanguage[language].trim()}>
-          {isSubmitting ? <LoaderCircle className="animate-spin" aria-hidden="true" /> : <Send aria-hidden="true" />}
-          {isSubmitting ? "Submitting..." : "Submit"}
-        </Button>
+        <div className="flex items-center gap-3">
+          {isSubmitting && executionStage && (
+            <CodeArenaExecutionIndicator label={executionStage} />
+          )}
+          <Button onClick={submitSolution} disabled={isSubmitting || !sourceByLanguage[language].trim()}>
+            {isSubmitting ? <Send aria-hidden="true" className="opacity-80" /> : <Send aria-hidden="true" />}
+            {isSubmitting ? "Submitting..." : "Submit"}
+          </Button>
+        </div>
       </div>
 
       <div className="p-3">

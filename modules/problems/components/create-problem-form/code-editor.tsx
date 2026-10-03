@@ -1,5 +1,7 @@
 "use client";
-import { Editor } from "@monaco-editor/react";
+import dynamic from "next/dynamic";
+import type { EditorProps } from "@monaco-editor/react";
+import { CodeEditorPlaceholder } from "@/components/ui/codearena-loading";
 
 const LANGUAGE_MAP = {
   javascript: "javascript",
@@ -15,6 +17,14 @@ type CodeEditorProps = {
 };
 
 export function CodeEditor({ value, onChange, language = "javascript", height = "300px" }: CodeEditorProps) {
+  const MonacoEditor = dynamic<EditorProps>(
+    () => import("@monaco-editor/react").then((mod) => mod.Editor),
+    {
+      ssr: false,
+      loading: () => <CodeEditorPlaceholder height={height} />,
+    }
+  );
+
   return (
     <div className="border rounded-md bg-slate-950 text-slate-50">
       <div className="px-4 py-2 bg-slate-800 border-b text-sm font-mono">
@@ -22,7 +32,7 @@ export function CodeEditor({ value, onChange, language = "javascript", height = 
       </div>
 
       <div className="w-full" style={{ height }}>
-        <Editor
+        <MonacoEditor
           height={height}
           language={LANGUAGE_MAP[language]}
           theme="vs-dark"
