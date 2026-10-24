@@ -5,6 +5,7 @@ import { AlertCircle, CheckCircle2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CodeArenaExecutionIndicator } from "@/components/ui/codearena-loading";
 import { CodeEditor } from "./create-problem-form/code-editor";
+import { ProblemTimer } from "./problem-timer";
 import {
   formatVerdict,
   notifyApiError,
@@ -106,6 +107,7 @@ export function ProblemSolver({
           </select>
         </label>
         <div className="flex items-center gap-3">
+          <ProblemTimer key={problemId} problemId={problemId} />
           {isSubmitting && executionStage && (
             <CodeArenaExecutionIndicator label={executionStage} />
           )}
@@ -158,4 +160,3 @@ export function ProblemSolver({
     </section>
   );
 }
-
