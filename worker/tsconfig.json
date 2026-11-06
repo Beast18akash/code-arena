@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ES2022",
+    "moduleResolution": "Bundler",
+    "rootDir": "..",
+    "outDir": "./dist",
+    "types": ["node"],
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "noEmitOnError": true
+  },
+  "include": [
+    "src/**/*.ts",
+    "../lib/db-client.ts",
+    "../lib/judge0-core.ts",
+    "../lib/java-submission.ts",
+    "../lib/javascript-submission.ts",
+    "../lib/python-submission.ts"
+  ],
+  "exclude": ["dist", "node_modules"]
+}

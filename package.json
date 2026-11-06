@@ -6,6 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "worker:build": "prisma generate --config worker/prisma.config.ts && tsc -p worker/tsconfig.json && node worker/scripts/copy-prisma-client.mjs",
+    "worker:start": "node worker/dist/worker/src/main.js",
     "lint": "eslint"
   },
   "dependencies": {

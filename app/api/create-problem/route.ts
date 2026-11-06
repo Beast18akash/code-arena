@@ -2,10 +2,14 @@ import { NextResponse } from "next/server";
 import { UserRole } from "@/lib/generated/prisma/client";
 import { getCurrentUserData, currentUserRole } from "@/modules/auth/actions";
 import {
-  getJudge0Url,
+  Judge0ConfigurationError,
+  Judge0RequestError,
+  Judge0TimeoutError,
+  validateJudge0Configuration,
 } from "@/lib/judge0";
 import { prisma } from "@/lib/db";
 import { validateReferenceSolutions } from "@/lib/problem-validation";
+import { problemSchema } from "@/modules/problems/schema";
 
 export async function POST(request: Request) {
   try {
@@ -17,14 +21,21 @@ export async function POST(request: Request) {
     }
 
     if (userRole !== UserRole.ADMIN) {
-      return NextResponse.json({ error: "Not authorized to create problem" }, { status: 401 });
+      return NextResponse.json({ error: "Not authorized to create problem" }, { status: 403 });
     }
 
-    const judge0Url = getJudge0Url();
-    if (!judge0Url) {
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Request body must be valid JSON" }, { status: 400 });
+    }
+
+    const parsedBody = problemSchema.safeParse(body);
+    if (!parsedBody.success) {
       return NextResponse.json(
-        { error: "Judge0 is not configured. Set JUDGE0_URL in the server environment." },
-        { status: 500 },
+        { error: "Invalid problem data", details: parsedBody.error.flatten() },
+        { status: 400 },
       );
     }
 
@@ -38,11 +49,7 @@ export async function POST(request: Request) {
       testCases,
       codeSnippets,
       referenceSolutions,
-    } = await request.json();
-
-    if (typeof title !== "string" || !title.trim()) {
-      return NextResponse.json({ error: "A problem title is required" }, { status: 400 });
-    }
+    } = parsedBody.data;
 
     const normalizedTitle = title.trim();
     const existingProblem = await prisma.problem.findFirst({
@@ -57,13 +64,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!title || !description || !difficulty || !tags || !examples || !constraints || !testCases || !codeSnippets || !referenceSolutions) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
-
-    if (!Array.isArray(testCases) || testCases.length === 0) {
-      return NextResponse.json({ error: "At least one test case is required" }, { status: 400 });
-    }
+    validateJudge0Configuration();
 
     const validationFailure = await validateReferenceSolutions(testCases, referenceSolutions);
     if (validationFailure) {
@@ -100,8 +101,38 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Error creating problem:", error);
 
+    if (error instanceof Judge0ConfigurationError) {
+      return NextResponse.json(
+        { error: "Judge0 is not configured correctly" },
+        { status: 500 },
+      );
+    }
+
+    if (error instanceof Judge0TimeoutError) {
+      return NextResponse.json({ error: "Judge0 execution timed out" }, { status: 504 });
+    }
+
+    if (error instanceof Judge0RequestError) {
+      const requestErrorResponse = {
+        authentication: { status: 502, message: "Judge0 authentication failed" },
+        "rate-limit": {
+          status: 503,
+          message: "Judge0 is rate limiting requests. Please try again later",
+        },
+        upstream: { status: 502, message: "Judge0 is temporarily unavailable" },
+        network: { status: 502, message: "Judge0 could not be reached" },
+        "request-timeout": { status: 504, message: "Judge0 request timed out" },
+        http: { status: 502, message: "Judge0 could not complete the request" },
+      }[error.kind];
+
+      return NextResponse.json(
+        { error: requestErrorResponse.message },
+        { status: requestErrorResponse.status },
+      );
+    }
+
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to create problem" },
+      { error: "Failed to create problem" },
       { status: 500 },
     );
   }

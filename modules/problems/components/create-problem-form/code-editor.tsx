@@ -16,15 +16,15 @@ type CodeEditorProps = {
   height?: string;
 };
 
-export function CodeEditor({ value, onChange, language = "javascript", height = "300px" }: CodeEditorProps) {
-  const MonacoEditor = dynamic<EditorProps>(
-    () => import("@monaco-editor/react").then((mod) => mod.Editor),
-    {
-      ssr: false,
-      loading: () => <CodeEditorPlaceholder height={height} />,
-    }
-  );
+const MonacoEditor = dynamic<EditorProps>(
+  () => import("@monaco-editor/react").then((mod) => mod.Editor),
+  {
+    ssr: false,
+    loading: () => <CodeEditorPlaceholder height="100%" />,
+  }
+);
 
+export function CodeEditor({ value, onChange, language = "javascript", height = "300px" }: CodeEditorProps) {
   return (
     <div className="border rounded-md bg-slate-950 text-slate-50">
       <div className="px-4 py-2 bg-slate-800 border-b text-sm font-mono">

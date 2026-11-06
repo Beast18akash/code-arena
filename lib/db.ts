@@ -1,28 +1,30 @@
-import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
-import { PrismaClient } from '@/lib/generated/prisma/client';
+import { createPrismaClient as createPrismaClientResources } from './db-client';
+import type { PrismaClientResources } from './db-client';
 
 const globalForPrisma = global as unknown as {
-  prisma: PrismaClient | undefined;
+  prisma: PrismaClientResources['prisma'] | undefined;
   pool: Pool | undefined;
 };
 
-function createPrismaClient() {
+function createApplicationPrismaClient() {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
     throw new Error('DATABASE_URL environment variable is not set');
   }
-  const pool = globalForPrisma.pool ?? new Pool({
+  const { prisma, pool } = createPrismaClientResources(
     connectionString,
-    max: 1,
-    connectionTimeoutMillis: 30000,
-    idleTimeoutMillis: 30000,
-  });
+    {
+      max: 1,
+      connectionTimeoutMillis: 30000,
+      idleTimeoutMillis: 30000,
+    },
+    globalForPrisma.pool,
+  );
   globalForPrisma.pool = pool;
-  const adapter = new PrismaPg(pool);
-  return new PrismaClient({ adapter });
+  return prisma;
 }
 
-export const prisma = globalForPrisma.prisma ?? createPrismaClient();
+export const prisma = globalForPrisma.prisma ?? createApplicationPrismaClient();
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
